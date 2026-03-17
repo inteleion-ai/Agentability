@@ -1,0 +1,6 @@
+# Minimal runtime dependencies for Agentability.
+# The canonical dependency list lives in pyproject.toml.
+# This file is provided only for compatibility with tools that read
+# requirements.txt directly (e.g. some CI runners or Docker builds).
+pydantic>=2.0.0
+typing-extensions>=4.5.0

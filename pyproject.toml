@@ -1,19 +1,19 @@
 [build-system]
-requires = ["setuptools>=65.0", "wheel"]
+requires = ["setuptools>=68.0", "wheel", "build>=1.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentability"
-version = "0.1.0"
-description = "The Observability Standard for Production AI Agents"
+version = "0.3.0"
+description = "Agent Operating Intelligence Layer for Production AI Systems"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
-    {name = "Agentability Contributors", email = "hello@agentability.io"}
+    {name = "Agentability Contributors", email = "hello@agentability.io"},
 ]
 maintainers = [
-    {name = "Agentability Contributors", email = "hello@agentability.io"}
+    {name = "Agentability Contributors", email = "hello@agentability.io"},
 ]
 keywords = [
     "ai",
@@ -23,7 +23,9 @@ keywords = [
     "llm",
     "multi-agent",
     "machine-learning",
-    "mlops"
+    "mlops",
+    "agentic",
+    "tracing",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -37,31 +39,43 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
 ]
 
+# Only the two core deps needed for pip install agentability
 dependencies = [
     "pydantic>=2.0.0",
     "typing-extensions>=4.5.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/inteleion-ai/Agentability"
+Documentation = "https://github.com/inteleion-ai/Agentability#readme"
+Repository = "https://github.com/inteleion-ai/Agentability"
+"Bug Tracker" = "https://github.com/inteleion-ai/Agentability/issues"
+Changelog = "https://github.com/inteleion-ai/Agentability/blob/main/CHANGELOG.md"
+
+# ---------------------------------------------------------------------------
+# Optional extras
+# ---------------------------------------------------------------------------
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
-    "pytest-asyncio>=0.21.0",
+    "pytest-asyncio>=0.23.0",
     "black>=23.7.0",
     "isort>=5.12.0",
     "mypy>=1.4.0",
+    "ruff>=0.3.0",
     "flake8>=6.1.0",
-    "pylint>=2.17.0",
     "pre-commit>=3.3.0",
+    "build>=1.0",
 ]
 
 # Storage backends
-sqlite = []  # Built-in
-duckdb = [
-    "duckdb>=0.9.0",
-]
+sqlite = []
+duckdb = ["duckdb>=0.9.0"]
 timescaledb = [
     "psycopg2-binary>=2.9.0",
     "sqlalchemy>=2.0.0",
@@ -73,30 +87,25 @@ all-storage = [
 ]
 
 # Framework integrations
-langchain = [
-    "langchain>=0.1.0",
-]
-crewai = [
-    "crewai>=0.1.0",
-]
-autogen = [
-    "pyautogen>=0.2.0",
-]
-llamaindex = [
-    "llama-index>=0.9.0",
-]
+langchain = ["langchain>=0.1.0"]
+crewai = ["crewai>=0.1.0"]
+autogen = ["pyautogen>=0.2.0"]
+llamaindex = ["llama-index>=0.9.0"]
+openai-agents = ["openai-agents>=0.0.1"]
+langgraph = ["langgraph>=0.1.0"]
 all-integrations = [
     "langchain>=0.1.0",
     "crewai>=0.1.0",
     "pyautogen>=0.2.0",
     "llama-index>=0.9.0",
+    "openai-agents>=0.0.1",
+    "langgraph>=0.1.0",
 ]
 
-# Platform components
+# Platform server
 api = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
-    "pydantic>=2.0.0",
     "python-multipart>=0.0.6",
     "websockets>=12.0",
 ]
@@ -107,14 +116,13 @@ workers = [
 all-platform = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
-    "pydantic>=2.0.0",
     "python-multipart>=0.0.6",
     "websockets>=12.0",
     "celery>=5.3.0",
     "redis>=5.0.0",
 ]
 
-# Complete installation
+# Everything
 all = [
     "duckdb>=0.9.0",
     "psycopg2-binary>=2.9.0",
@@ -131,12 +139,9 @@ all = [
     "redis>=5.0.0",
 ]
 
-[project.urls]
-Homepage = "https://agentability.io"
-Documentation = "https://docs.agentability.io"
-Repository = "https://github.com/agentability/agentability"
-"Bug Tracker" = "https://github.com/agentability/agentability/issues"
-Changelog = "https://github.com/agentability/agentability/blob/main/CHANGELOG.md"
+# ---------------------------------------------------------------------------
+# Package discovery
+# ---------------------------------------------------------------------------
 
 [tool.setuptools]
 package-dir = {"" = "sdk/python"}
@@ -146,15 +151,18 @@ where = ["sdk/python"]
 include = ["agentability*"]
 namespaces = false
 
+[tool.setuptools.package-data]
+agentability = ["py.typed"]
+
+# ---------------------------------------------------------------------------
+# Test / coverage configuration
+# ---------------------------------------------------------------------------
+
 [tool.pytest.ini_options]
 minversion = "7.0"
 addopts = "-ra -q --strict-markers --cov=agentability --cov-report=term-missing"
-testpaths = [
-    "sdk/python/tests",
-]
-pythonpath = [
-    "sdk/python"
-]
+testpaths = ["sdk/python/tests"]
+pythonpath = ["sdk/python"]
 
 [tool.coverage.run]
 source = ["sdk/python/agentability"]
@@ -164,6 +172,7 @@ omit = [
 ]
 
 [tool.coverage.report]
+fail_under = 85
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
@@ -173,6 +182,50 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "@abstractmethod",
 ]
+
+# ---------------------------------------------------------------------------
+# Formatter / linter configuration
+# ---------------------------------------------------------------------------
+
+[tool.black]
+line-length = 88
+target-version = ["py39", "py310", "py311", "py312"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  \.eggs | \.git | \.hg | \.mypy_cache | \.tox | \.venv | build | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 88
+skip_gitignore = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM"]
+ignore = ["E501", "B008"]
+
+[tool.ruff.lint.isort]
+# Declare agentability as first-party so ruff keeps a blank line between
+# third-party (pytest, pydantic …) and first-party (agentability) imports.
+known-first-party = ["agentability"]
+
+[tool.ruff.lint.per-file-ignores]
+"sdk/python/tests/*" = ["S101", "ANN"]
+
+# ---------------------------------------------------------------------------
+# mypy configuration
+# ---------------------------------------------------------------------------
 
 [tool.mypy]
 python_version = "3.9"
@@ -192,41 +245,17 @@ strict_equality = true
 module = "tests.*"
 disallow_untyped_defs = false
 
-[tool.black]
-line-length = 88
-target-version = ['py39', 'py310', 'py311', 'py312']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-)/
-'''
-
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
-line_length = 88
-skip_gitignore = true
-
-[tool.pylint.messages_control]
-disable = [
-    "C0330",
-    "C0326",
-    "too-few-public-methods",
-    "missing-module-docstring",
+[[tool.mypy.overrides]]
+module = [
+    "langchain.*",
+    "crewai.*",
+    "autogen.*",
+    "llama_index.*",
+    "anthropic.*",
+    "duckdb.*",
+    "psycopg2.*",
+    "sqlalchemy.*",
+    "celery.*",
+    "redis.*",
 ]
-
-[tool.pylint.format]
-max-line-length = 88
+ignore_missing_imports = true

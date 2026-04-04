@@ -1,115 +1,87 @@
-"""Structured logging utility for Agentability.
+"""Structured logging utility.
 
-Follows Google Cloud Logging standards with structured JSON output.
+Copyright 2026 Agentability Contributors
+SPDX-License-Identifier: MIT
 """
+
+from __future__ import annotations
 
 import logging
 import sys
-from typing import Any, Dict, Optional
 
 
-# ANSI color codes for terminal output
-class Colors:
-    """ANSI color codes."""
+class _Colours:
     RESET = "\033[0m"
     RED = "\033[91m"
     GREEN = "\033[92m"
     YELLOW = "\033[93m"
-    BLUE = "\033[94m"
-    MAGENTA = "\033[95m"
     CYAN = "\033[96m"
     GRAY = "\033[90m"
+    MAGENTA = "\033[95m"
 
 
-class AgentabilityFormatter(logging.Formatter):
-    """Custom formatter with colors and structured output."""
-    
-    LEVEL_COLORS = {
-        logging.DEBUG: Colors.GRAY,
-        logging.INFO: Colors.GREEN,
-        logging.WARNING: Colors.YELLOW,
-        logging.ERROR: Colors.RED,
-        logging.CRITICAL: Colors.MAGENTA,
+class _AgentabilityFormatter(logging.Formatter):
+    _LEVEL_COLOURS: dict[int, str] = {
+        logging.DEBUG: _Colours.GRAY,
+        logging.INFO: _Colours.GREEN,
+        logging.WARNING: _Colours.YELLOW,
+        logging.ERROR: _Colours.RED,
+        logging.CRITICAL: _Colours.MAGENTA,
     }
-    
-    def format(self, record: logging.LogRecord) -> str:
-        """Format log record with colors."""
-        level_color = self.LEVEL_COLORS.get(record.levelno, Colors.RESET)
-        
-        # Format: [LEVEL] module: message
-        formatted = (
-            f"{level_color}[{record.levelname}]{Colors.RESET} "
-            f"{Colors.CYAN}{record.name}{Colors.RESET}: "
+
+    def format(self, record: logging.LogRecord) -> str:  # noqa: A003
+        colour = self._LEVEL_COLOURS.get(record.levelno, _Colours.RESET)
+        msg = (
+            f"{colour}[{record.levelname}]{_Colours.RESET} "
+            f"{_Colours.CYAN}{record.name}{_Colours.RESET}: "
             f"{record.getMessage()}"
         )
-        
-        # Add exception info if present
         if record.exc_info:
-            formatted += "\n" + self.formatException(record.exc_info)
-        
-        return formatted
+            msg += "\n" + self.formatException(record.exc_info)
+        return msg
 
 
-# Global logger configuration
-_loggers: Dict[str, logging.Logger] = {}
-_default_level = logging.INFO
+_cache: dict[str, logging.Logger] = {}
+_default_level: int = logging.INFO
 
 
 def configure_logging(
     level: int = logging.INFO,
-    format_string: Optional[str] = None,
-    use_colors: bool = True,
+    use_colours: bool = True,
+    format_string: str | None = None,
 ) -> None:
-    """Configure global logging settings.
-    
-    Args:
-        level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        format_string: Custom format string (if not using default)
-        use_colors: Whether to use colored output
-    """
-    global _default_level
+    """Configure the root Agentability logger."""
+    global _default_level  # noqa: PLW0603
     _default_level = level
-    
-    # Configure root logger
-    root_logger = logging.getLogger()
-    root_logger.setLevel(level)
-    
-    # Remove existing handlers
-    root_logger.handlers.clear()
-    
-    # Create console handler
+
+    root = logging.getLogger("agentability")
+    root.setLevel(level)
+    root.handlers.clear()
+
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(level)
-    
-    # Set formatter
-    if use_colors:
-        handler.setFormatter(AgentabilityFormatter())
+
+    if use_colours and format_string is None:
+        handler.setFormatter(_AgentabilityFormatter())
     else:
-        formatter = logging.Formatter(
-            format_string or "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
+        handler.setFormatter(
+            logging.Formatter(
+                format_string or "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
         )
-        handler.setFormatter(formatter)
-    
-    root_logger.addHandler(handler)
+
+    root.addHandler(handler)
+    root.propagate = False
 
 
 def get_logger(name: str) -> logging.Logger:
-    """Get or create a logger for a module.
-    
-    Args:
-        name: Logger name (typically __name__)
-        
-    Returns:
-        Configured logger instance
-    """
-    if name not in _loggers:
+    """Return a named child logger of ``agentability``."""
+    if name not in _cache:
         logger = logging.getLogger(name)
         logger.setLevel(_default_level)
-        _loggers[name] = logger
-    
-    return _loggers[name]
+        _cache[name] = logger
+    return _cache[name]
 
 
-# Initialize default logging on import
 configure_logging()

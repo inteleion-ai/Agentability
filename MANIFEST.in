@@ -1,0 +1,9 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include SECURITY.md
+include AUTHORS.md
+recursive-include sdk/python/agentability *.py *.pyi
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *.so

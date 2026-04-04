@@ -92,6 +92,15 @@ tmp/
 temp/
 *.tmp
 
+# Accidental files from CLI flags (e.g. npm run dev -- --host)
+--*
+
+# Database files (never commit real data)
+agentability.db
+*.db
+*.sqlite
+*.sqlite3
+
 # Docker
 *.tar
 *.tar.gz

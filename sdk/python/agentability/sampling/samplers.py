@@ -1,19 +1,21 @@
-"""
-Sampling system - cost controls at scale.
+"""Trace sampling strategies for cost-controlled observability at scale.
 
-Copyright (c) 2026 Agentability
-Licensed under MIT License
+Copyright 2026 Agentability Contributors
+SPDX-License-Identifier: MIT
 """
 
-from enum import Enum
-from typing import Optional, Dict
+from __future__ import annotations
+
 import random
+from enum import Enum
+from typing import Any
 
 from agentability.models import Decision
 
 
 class SamplingStrategy(Enum):
-    """Sampling strategies."""
+    """Strategies for deciding which traces to record."""
+
     ALWAYS = "always"
     NEVER = "never"
     HEAD_BASED = "head_based"
@@ -25,131 +27,80 @@ class SamplingStrategy(Enum):
 
 
 class TraceSampler:
+    """Cost-controlled trace sampler for high-throughput agent systems.
+
+    Args:
+        strategy: The sampling strategy to apply.
+        sample_rate: Probability used by probabilistic strategies (0–1).
+        cost_budget_per_day: Daily cost ceiling in USD for COST_AWARE mode.
     """
-    Intelligent trace sampling for cost control.
-    
-    Example:
-        sampler = TraceSampler(
-            strategy=SamplingStrategy.PROBABILISTIC,
-            sample_rate=0.1  # 10% of traces
-        )
-        
-        if sampler.should_sample_head(context):
-            # Trace this decision
-            pass
-    """
-    
+
     def __init__(
         self,
         strategy: SamplingStrategy = SamplingStrategy.ALWAYS,
         sample_rate: float = 1.0,
-        cost_budget_per_day: Optional[float] = None
-    ):
+        cost_budget_per_day: float | None = None,
+    ) -> None:
         self.strategy = strategy
-        self.sample_rate = sample_rate
+        self.sample_rate = float(sample_rate)
         self.cost_budget_per_day = cost_budget_per_day
-        self.daily_cost_spent = 0.0
-    
-    def should_sample_head(self, trace_context: Dict) -> bool:
-        """
-        Decide if trace should be sampled (head-based).
-        
-        Called at trace start, before decision is made.
-        """
+        self.daily_cost_spent: float = 0.0
+
+    def should_sample_head(self, trace_context: dict[str, Any]) -> bool:
+        """Decide at trace *start* whether to record this trace."""
         if self.strategy == SamplingStrategy.ALWAYS:
             return True
-        
-        elif self.strategy == SamplingStrategy.NEVER:
+        if self.strategy == SamplingStrategy.NEVER:
             return False
-        
-        elif self.strategy in [SamplingStrategy.HEAD_BASED, 
-                              SamplingStrategy.PROBABILISTIC]:
+        if self.strategy in (
+            SamplingStrategy.HEAD_BASED,
+            SamplingStrategy.PROBABILISTIC,
+        ):
             return random.random() < self.sample_rate
-        
-        elif self.strategy == SamplingStrategy.COST_AWARE:
-            if self.cost_budget_per_day:
+        if self.strategy == SamplingStrategy.COST_AWARE:
+            if self.cost_budget_per_day is not None:
                 return self.daily_cost_spent < self.cost_budget_per_day
             return True
-        
-        elif self.strategy == SamplingStrategy.IMPORTANCE_BASED:
-            importance = trace_context.get('importance', 0.5)
+        if self.strategy == SamplingStrategy.IMPORTANCE_BASED:
+            importance = float(trace_context.get("importance", 0.5))
             return random.random() < importance
-        
-        else:
-            # For TAIL_BASED and ADAPTIVE, sample everything initially
-            return True
-    
-    def should_sample_tail(
-        self,
-        trace,
-        decision: Decision
-    ) -> bool:
-        """
-        Decide if trace should be sampled (tail-based).
-        
-        Called after decision is made, with full information.
-        """
+        return True
+
+    def should_sample_tail(self, trace: Any, decision: Decision) -> bool:
+        """Decide at trace *end* whether to retain the completed trace."""
         if self.strategy != SamplingStrategy.TAIL_BASED:
-            # For non-tail strategies, we already decided
             return True
-        
-        # Tail-based: ALWAYS sample important traces
-        should_sample = (
-            # Always sample errors
-            decision.error is not None or
-            
-            # Always sample low confidence
-            decision.confidence < 0.5 or
-            
-            # Always sample high cost
-            (decision.llm_metrics and decision.llm_metrics.cost > 0.10) or
-            
-            # Always sample policy violations
-            (decision.policy_violations and len(decision.policy_violations) > 0) or
-            
-            # Sample others probabilistically
-            random.random() < self.sample_rate
+        has_low_confidence = (
+            decision.confidence is not None and decision.confidence < 0.5
         )
-        
-        return should_sample
-    
-    def record_cost(self, cost: float):
-        """Record cost for budget tracking."""
-        self.daily_cost_spent += cost
-    
-    def reset_daily_budget(self):
-        """Reset daily cost counter (call at midnight)."""
+        has_high_cost = decision.total_cost_usd > 0.10
+        has_violations = bool(decision.constraints_violated)
+        return (
+            has_low_confidence
+            or has_high_cost
+            or has_violations
+            or random.random() < self.sample_rate
+        )
+
+    def record_cost(self, cost_usd: float) -> None:
+        """Accumulate cost toward the daily budget."""
+        self.daily_cost_spent += cost_usd
+
+    def reset_daily_budget(self) -> None:
+        """Reset the daily cost accumulator."""
         self.daily_cost_spent = 0.0
 
 
 class ImportanceScorer:
-    """
-    Score trace importance for importance-based sampling.
-    
-    Higher importance = more likely to be sampled.
-    """
-    
-    def score(self, trace_context: Dict) -> float:
-        """
-        Score importance (0-1).
-        
-        Factors:
-        - User tier (premium users = higher importance)
-        - Task criticality
-        - Historical error rate
-        """
-        score = 0.5  # Base importance
-        
-        # User tier
-        if trace_context.get('user_tier') == 'premium':
-            score += 0.2
-        
-        # Critical tasks
-        if trace_context.get('critical', False):
-            score += 0.3
-        
-        # High error rate agents
-        if trace_context.get('error_rate', 0) > 0.1:
-            score += 0.2
-        
-        return min(1.0, score)
+    """Compute a trace importance score for importance-based sampling."""
+
+    def score(self, trace_context: dict[str, Any]) -> float:
+        """Return an importance score clamped to [0, 1]."""
+        value = 0.5
+        if trace_context.get("user_tier") == "premium":
+            value += 0.2
+        if trace_context.get("critical", False):
+            value += 0.3
+        if float(trace_context.get("error_rate", 0.0)) > 0.1:
+            value += 0.2
+        return min(1.0, value)

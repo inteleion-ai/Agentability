@@ -1,0 +1,50 @@
+name: Dashboard CI
+
+on:
+  push:
+    branches: [main, develop, "feat/**", "fix/**"]
+    paths:
+      - "dashboard/**"
+      - ".github/workflows/dashboard.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "dashboard/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline 2>/dev/null || npm install
+
+      - name: TypeScript type check
+        run: npm run type-check
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Upload build artefact
+        uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/main'
+        with:
+          name: dashboard-dist
+          path: dashboard/dist/
+          retention-days: 7

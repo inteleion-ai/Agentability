@@ -1,24 +1,27 @@
 """Memory subsystem tracking modules.
 
-This package provides trackers for different types of agent memory:
-- Vector memory (RAG, embeddings)
-- Episodic memory (sequential experiences)
-- Semantic memory (knowledge graphs)
-- Working memory (current context)
+Copyright 2026 Agentability Contributors
+SPDX-License-Identifier: MIT
 """
 
-from .vector_tracker import VectorMemoryTracker, VectorRetrievalMetric
-from .episodic_tracker import EpisodicMemoryTracker, EpisodicRetrievalMetric
-from .semantic_tracker import SemanticMemoryTracker, SemanticRetrievalMetric
-from .working_tracker import WorkingMemoryTracker, WorkingMemoryMetric
+from agentability.memory.episodic_tracker import (
+    EpisodicMemoryTracker,
+    EpisodicRetrievalMetric,
+)
+from agentability.memory.semantic_tracker import (
+    SemanticMemoryTracker,
+    SemanticRetrievalMetric,
+)
+from agentability.memory.working_tracker import (
+    WorkingMemoryMetric,
+    WorkingMemoryTracker,
+)
 
 __all__ = [
-    "VectorMemoryTracker",
-    "VectorRetrievalMetric",
     "EpisodicMemoryTracker",
     "EpisodicRetrievalMetric",
     "SemanticMemoryTracker",
     "SemanticRetrievalMetric",
-    "WorkingMemoryTracker",
     "WorkingMemoryMetric",
+    "WorkingMemoryTracker",
 ]

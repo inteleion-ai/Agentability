@@ -1,0 +1,12 @@
+[flake8]
+# Match Black and ruff line length exactly
+max-line-length = 88
+
+# E203: whitespace before ':' — Black-incompatible, always ignore
+# E501: line too long — handled by ruff / Black at 88 chars
+# W503: line break before binary operator — conflicts with Black
+extend-ignore = E203, E501, W503
+
+# Only lint the production source; tests are covered by ruff
+per-file-ignores =
+    sdk/python/tests/*:S101,ANN001,ANN002,ANN003,ANN201,ANN202

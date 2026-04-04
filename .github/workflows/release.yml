@@ -1,0 +1,151 @@
+name: Release — Build, Publish to PyPI, Create GitHub Release
+
+# Triggers on any tag matching SemVer: v0.2.0, v0.2.0a1, v1.0.0, etc.
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"        # stable: v1.0.0
+      - "v[0-9]+.[0-9]+.[0-9]+a[0-9]+" # alpha:  v0.2.0a1
+      - "v[0-9]+.[0-9]+.[0-9]+b[0-9]+" # beta:   v0.3.0b1
+      - "v[0-9]+.[0-9]+.[0-9]+rc[0-9]+" # rc:    v1.0.0rc1
+
+permissions:
+  contents: write   # needed for GitHub Release creation
+
+jobs:
+  # ── 1. Validate version consistency ──────────────────────────────────────
+  validate:
+    name: Validate version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      is_prerelease: ${{ steps.get_version.outputs.is_prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. v0.2.0a1
+          VERSION="${TAG#v}"                # e.g. 0.2.0a1
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          # Mark as prerelease if tag contains a/b/rc
+          if echo "$TAG" | grep -qE '(a|b|rc)[0-9]+$'; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Verify pyproject.toml version matches tag
+        run: |
+          TOML_VER=$(python -c "
+          import re, sys
+          content = open('pyproject.toml').read()
+          m = re.search(r'^version\s*=\s*[\"\'](.*?)[\"\']', content, re.M)
+          print(m.group(1) if m else 'NOT_FOUND')
+          ")
+          TAG_VER="${{ steps.get_version.outputs.version }}"
+          echo "Tag version  : ${TAG_VER}"
+          echo "TOML version : ${TOML_VER}"
+          if [ "${TAG_VER}" != "${TOML_VER}" ]; then
+            echo "ERROR: tag ${TAG_VER} does not match pyproject.toml ${TOML_VER}"
+            exit 1
+          fi
+          echo "Version check passed."
+
+  # ── 2. Build wheel + sdist ───────────────────────────────────────────────
+  build:
+    name: Build distribution
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install build tools
+        run: pip install build twine
+
+      - name: Build wheel and sdist
+        run: python -m build
+
+      - name: Verify distribution with twine
+        run: twine check dist/*
+
+      - name: Show built artefacts
+        run: ls -lh dist/
+
+      - name: Upload build artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # ── 3. Publish to PyPI via API token ─────────────────────────────────────
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/agentability/
+    steps:
+      - name: Download build artefacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # PYPI_API_TOKEN must be added to:
+          # GitHub → Settings → Secrets → Actions → New repository secret
+          # Name: PYPI_API_TOKEN
+          # Value: pypi-AgAA... (your PyPI API token)
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          verbose: true
+          skip-existing: false
+
+  # ── 4. Create GitHub Release ─────────────────────────────────────────────
+  github-release:
+    name: Create GitHub Release
+    needs: [build, publish-pypi]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history for release notes
+
+      - name: Download build artefacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Agentability ${{ github.ref_name }}"
+          draft: false
+          prerelease: ${{ needs.validate.outputs.is_prerelease == 'true' }}
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
+          generate_release_notes: true
+          body: |
+            ## Installation
+
+            ```bash
+            pip install agentability==${{ needs.validate.outputs.version }}
+            ```
+
+            See [CHANGELOG.md](https://github.com/inteleion-ai/Agentability/blob/main/CHANGELOG.md) for full details.

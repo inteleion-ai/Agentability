@@ -1,14 +1,18 @@
 {
   "name": "agentability-dashboard",
-  "version": "1.0.0",
-  "description": "Zerodha-class dashboard for Agentability",
+  "version": "0.2.0",
+  "description": "Production-grade observability dashboard for Agentability — Agent Intelligence Layer",
   "private": true,
   "type": "module",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\""
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -17,10 +21,10 @@
     "@tanstack/react-query": "^5.17.0",
     "axios": "^1.6.5",
     "d3": "^7.8.5",
+    "date-fns": "^3.3.1",
     "lightweight-charts": "^4.1.1",
     "recharts": "^2.10.3",
     "zustand": "^4.4.7",
-    "date-fns": "^3.0.6",
     "clsx": "^2.1.0",
     "tailwind-merge": "^2.2.0"
   },
@@ -36,6 +40,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "postcss": "^8.4.33",
+    "prettier": "^3.2.4",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",
     "vite": "^5.0.11"

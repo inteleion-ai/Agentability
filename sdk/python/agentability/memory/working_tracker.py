@@ -2,19 +2,22 @@
 
 Tracks active context, attention mechanisms, and context window management.
 
-Google Style Guide Compliant.
+Copyright 2026 Agentability Contributors
+SPDX-License-Identifier: MIT
 """
 
+from __future__ import annotations
+
+import statistics
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
-import statistics
+from typing import Any
 
 
 @dataclass
 class WorkingMemoryMetric:
     """Metrics for working memory state.
-    
+
     Attributes:
         metric_id: Unique identifier.
         agent_id: Agent ID.
@@ -28,6 +31,7 @@ class WorkingMemoryMetric:
         items_removed: Items removed this update.
         metadata: Additional metadata.
     """
+
     metric_id: str
     agent_id: str
     timestamp: datetime
@@ -35,27 +39,27 @@ class WorkingMemoryMetric:
     total_tokens: int
     max_tokens: int
     utilization: float
-    attention_distribution: Dict[str, float] = field(default_factory=dict)
+    attention_distribution: dict[str, float] = field(default_factory=dict)
     items_added: int = 0
     items_removed: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class WorkingMemoryTracker:
     """Tracks working memory performance and utilization."""
-    
+
     def __init__(self, agent_id: str, max_tokens: int = 4096):
         self.agent_id = agent_id
         self.max_tokens = max_tokens
-        self.metrics: List[WorkingMemoryMetric] = []
-    
+        self.metrics: list[WorkingMemoryMetric] = []
+
     def record_state(
         self,
         active_items: int,
         total_tokens: int,
-        attention_dist: Optional[Dict[str, float]] = None,
+        attention_dist: dict[str, float] | None = None,
         items_added: int = 0,
-        items_removed: int = 0
+        items_removed: int = 0,
     ) -> None:
         """Record current working memory state."""
         metric = WorkingMemoryMetric(
@@ -65,28 +69,36 @@ class WorkingMemoryTracker:
             active_items_count=active_items,
             total_tokens=total_tokens,
             max_tokens=self.max_tokens,
-            utilization=total_tokens / self.max_tokens if self.max_tokens > 0 else 0.0,
+            utilization=(
+                total_tokens / self.max_tokens if self.max_tokens > 0 else 0.0
+            ),
             attention_distribution=attention_dist or {},
             items_added=items_added,
-            items_removed=items_removed
+            items_removed=items_removed,
         )
         self.metrics.append(metric)
-    
-    def get_avg_utilization(self, time_window_hours: Optional[int] = None) -> float:
+
+    def get_avg_utilization(
+        self, time_window_hours: int | None = None
+    ) -> float:
         """Get average context utilization."""
         metrics = self._filter_metrics(time_window_hours)
         if not metrics:
             return 0.0
         return statistics.mean(m.utilization for m in metrics)
-    
-    def get_peak_utilization(self, time_window_hours: Optional[int] = None) -> float:
+
+    def get_peak_utilization(
+        self, time_window_hours: int | None = None
+    ) -> float:
         """Get peak context utilization."""
         metrics = self._filter_metrics(time_window_hours)
         if not metrics:
             return 0.0
         return max(m.utilization for m in metrics)
-    
-    def _filter_metrics(self, time_window_hours: Optional[int]) -> List[WorkingMemoryMetric]:
+
+    def _filter_metrics(
+        self, time_window_hours: int | None
+    ) -> list[WorkingMemoryMetric]:
         if not time_window_hours:
             return self.metrics
         cutoff = datetime.now() - timedelta(hours=time_window_hours)

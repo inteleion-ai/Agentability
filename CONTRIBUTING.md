@@ -1,331 +1,288 @@
 # Contributing to Agentability
 
-Thank you for your interest in contributing to Agentability! This document provides guidelines and instructions for contributing.
+Thank you for taking the time to contribute. This document describes how to
+set up your environment, submit changes, and meet the quality bar required
+for merging.
 
-## 🤝 Code of Conduct
+---
 
-Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
+## Code of Conduct
 
-## 🚀 Getting Started
+All contributors are expected to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
+In short: be constructive, respectful, and collaborative.
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
-- Python 3.11+
-- Node.js 18+
-- Docker & Docker Compose
-- Git
+| Tool | Version |
+|---|---|
+| Python | 3.9 or later |
+| Node.js | 18 or later |
+| Git | 2.40 or later |
+| Docker (optional) | 24 or later |
 
-### Development Setup
+### Environment Setup
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/agentability.git
-cd agentability
+# 1. Fork and clone
+git clone https://github.com/inteleion-ai/Agentability.git
+cd Agentability
 
-# Install Python dependencies
+# 2. Install Python SDK in editable mode (dev extras include all linters)
 pip install -e ".[dev]"
 
-# Install pre-commit hooks
+# 3. Install pre-commit hooks
 pre-commit install
 
-# Install dashboard dependencies
-cd dashboard
-npm install
-cd ..
+# 4. Install dashboard dependencies
+cd dashboard && npm install && cd ..
 
-# Start development environment
+# 5. Verify the test suite passes
+pytest
+
+# 6. Optional: start a local development stack
 docker-compose -f docker-compose.dev.yml up
 ```
 
-## 📝 How to Contribute
+---
 
-### Reporting Bugs
-
-Before creating bug reports, please check existing issues. When creating a bug report, include:
-
-- **Clear title** and **description**
-- **Steps to reproduce** the issue
-- **Expected behavior** vs **actual behavior**
-- **Environment details** (OS, Python version, etc.)
-- **Code samples** or **screenshots** if applicable
-
-### Suggesting Features
-
-Feature suggestions are welcome! Please:
-
-- **Check existing feature requests** first
-- **Provide clear use case** and **benefits**
-- **Describe proposed API** or **user interface**
-- **Consider backwards compatibility**
-
-### Pull Requests
-
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Make** your changes
-4. **Write** or **update tests**
-5. **Run** tests (`pytest` and `npm test`)
-6. **Update** documentation
-7. **Commit** with clear messages
-8. **Push** to your fork
-9. **Open** a pull request
-
-#### PR Guidelines
-
-- **One feature per PR** - Keep PRs focused
-- **Follow code style** - Run linters (`ruff`, `black`, `eslint`)
-- **Add tests** - Maintain >80% coverage
-- **Update docs** - Keep documentation in sync
-- **Sign commits** - Use verified commits
-- **Reference issues** - Link related issues
-
-## 🏗️ Project Structure
+## Repository Layout
 
 ```
 agentability/
 ├── sdk/
-│   ├── python/          # Python SDK
-│   │   ├── agentability/
-│   │   ├── tests/
-│   │   └── examples/
-│   └── typescript/      # TypeScript SDK
-├── platform/           # Backend services
-│   ├── api/
-│   ├── collectors/
-│   └── workers/
-├── dashboard/          # React dashboard
-├── infrastructure/     # Deployment configs
-└── docs/              # Documentation
+│   ├── python/
+│   │   ├── agentability/      # Core Python package
+│   │   ├── tests/             # pytest test suite
+│   │   └── examples/          # Runnable usage examples
+│   └── typescript/            # TypeScript SDK (Q2 2026)
+├── platform/
+│   ├── api/                   # FastAPI server
+│   ├── collectors/            # OTEL / streaming collectors
+│   └── workers/               # Background workers
+├── dashboard/                 # React + TypeScript UI
+├── infrastructure/            # Docker, Helm, Kubernetes
+└── docs/                      # Docusaurus documentation site
 ```
 
-## 💻 Development Guidelines
+---
 
-### Python Code Style
+## How to Contribute
 
-We follow Google Python Style Guide with these tools:
+### Reporting Bugs
+
+Before opening an issue, search existing issues to avoid duplicates.
+A good bug report includes:
+
+- A clear, descriptive title.
+- Steps to reproduce (minimal code sample preferred).
+- Expected behaviour vs. actual behaviour.
+- Python version, OS, and `pip show agentability` output.
+
+### Suggesting Features
+
+Open an issue with the label `enhancement`. Describe:
+
+- The use case and the problem it solves.
+- A proposed API or interface sketch.
+- Any backwards-compatibility considerations.
+
+### Submitting Pull Requests
+
+1. Create a feature branch from `main`:
+   `git checkout -b feat/my-feature`
+2. Make your changes.
+3. Add or update tests to maintain > 80 % coverage.
+4. Update `CHANGELOG.md` under `[Unreleased]`.
+5. Run the full quality gate (see below).
+6. Commit using [Conventional Commits](#commit-messages).
+7. Open a pull request against `main`.
+
+---
+
+## Quality Gate
+
+Every PR must pass all checks before merge:
 
 ```bash
-# Format code
+# Formatting
 black sdk/python/agentability
-ruff check --fix sdk/python/agentability
+isort sdk/python/agentability
+
+# Linting
+ruff check sdk/python/agentability
+flake8 sdk/python/agentability
 
 # Type checking
 mypy sdk/python/agentability
 
-# Run tests
-pytest sdk/python/tests/
+# Tests with coverage
+pytest --cov=agentability --cov-report=term-missing
+
+# TypeScript (dashboard)
+cd dashboard && npm run lint && npm run type-check
 ```
 
-**Key Principles:**
-- Use **type hints** everywhere
-- Write **docstrings** (Google style)
-- Keep functions **<50 lines**
-- Prefer **composition** over inheritance
-- Write **pure functions** when possible
+---
 
-### TypeScript Code Style
+## Python Code Style
 
-We follow Airbnb TypeScript Style Guide:
+Agentability follows the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
+with the following tools configured in `pyproject.toml`:
 
-```bash
-# Format code
-npm run format
+- **black** — code formatting (line length 88)
+- **isort** — import ordering (black-compatible profile)
+- **mypy** — strict type checking
+- **ruff / flake8** — linting
 
-# Lint
-npm run lint
+Key conventions:
 
-# Type check
-npm run type-check
+- All public functions, methods, and classes must have Google-style docstrings.
+- Use type annotations everywhere; `Any` is permitted only where unavoidable.
+- Keep functions under 50 lines; prefer pure functions.
+- Prefer composition over inheritance.
 
-# Run tests
-npm test
-```
+---
 
-**Key Principles:**
-- **Strict TypeScript** mode enabled
-- **Functional components** with hooks
-- **Immutable data** patterns
-- **Explicit return types**
-- **Comprehensive JSDoc**
+## TypeScript Code Style
 
-### Testing Requirements
+The dashboard follows the [Airbnb TypeScript Style Guide](https://github.com/airbnb/javascript):
 
-- **Unit tests**: >80% coverage
-- **Integration tests**: Critical paths
-- **E2E tests**: User workflows
-- **Performance tests**: Benchmarks
+- Strict TypeScript mode (`"strict": true` in `tsconfig.json`).
+- Functional React components with hooks only.
+- Explicit return types on all non-trivial functions.
+- JSDoc comments on all exported symbols.
 
-```python
-# Python testing example
-import pytest
-from agentability import Tracer
+---
 
-def test_decision_tracking():
-    """Test basic decision tracking functionality."""
-    tracer = Tracer(offline_mode=True)
-    
-    with tracer.trace_decision(agent_id="test_agent"):
-        tracer.record_decision(
-            output="test_output",
-            confidence=0.95
-        )
-    
-    decisions = tracer.get_decisions(agent_id="test_agent")
-    assert len(decisions) == 1
-    assert decisions[0].confidence == 0.95
-```
+## Commit Messages
 
-### Documentation
-
-- **Code comments**: Explain "why", not "what"
-- **Docstrings**: All public APIs
-- **README**: Keep up-to-date
-- **Guides**: For complex features
-- **API reference**: Auto-generated from docstrings
-
-### Commit Messages
-
-Follow Conventional Commits:
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
-<type>(<scope>): <subject>
+<type>(<scope>): <short summary>
 
-<body>
+[optional body]
 
-<footer>
+[optional footer]
 ```
 
-**Types:**
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation
-- `style`: Code style (no logic change)
-- `refactor`: Code refactoring
-- `perf`: Performance improvement
-- `test`: Adding tests
-- `chore`: Build/tooling changes
+Allowed types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`,
+`chore`, `ci`.
 
-**Example:**
+Examples:
+
 ```
-feat(sdk): add episodic memory tracking
+feat(sdk): add TracingContext helper methods
 
-- Implement EpisodicMemoryTracker class
-- Add temporal coherence metrics
-- Update documentation
+- Expose set_confidence(), add_tokens(), add_cost(), add_reasoning_step()
+- Fix integration wrappers that previously called non-existent methods on UUID
 
-Closes #123
+Closes #42
 ```
 
-## 🧪 Testing
-
-### Running Tests
-
-```bash
-# All tests
-pytest
-
-# Specific test file
-pytest tests/test_tracer.py
-
-# With coverage
-pytest --cov=agentability --cov-report=html
-
-# JavaScript tests
-npm test
 ```
+fix(models): use min_length=2 for Pydantic v2 compatibility
+
+Replaces deprecated min_items=2 on AgentConflict.involved_agents.
+```
+
+---
+
+## Testing
 
 ### Writing Tests
 
 ```python
-"""Test module for decision provenance."""
+"""Tests for decision provenance tracking."""
 
 import pytest
-from datetime import datetime
 from agentability import Tracer
 from agentability.models import DecisionType
 
+
 class TestDecisionProvenance:
-    """Test suite for decision provenance tracking."""
-    
+    """Unit tests for Tracer.record_decision()."""
+
     @pytest.fixture
-    def tracer(self):
-        """Create tracer instance for testing."""
-        return Tracer(offline_mode=True)
-    
-    def test_basic_decision_recording(self, tracer):
-        """Test recording a basic decision."""
+    def tracer(self, tmp_path):
+        """Return an offline Tracer backed by a temporary database."""
+        t = Tracer(offline_mode=True, database_path=str(tmp_path / "test.db"))
+        yield t
+        t.close()
+
+    def test_basic_decision_is_persisted(self, tracer):
+        """A decision recorded inside trace_decision() should be retrievable."""
         with tracer.trace_decision(
             agent_id="test_agent",
-            decision_type=DecisionType.CLASSIFICATION
+            decision_type=DecisionType.CLASSIFICATION,
+        ):
+            tracer.record_decision(output="approved", confidence=0.85)
+
+        decisions = tracer.query_decisions(agent_id="test_agent")
+        assert len(decisions) == 1
+        assert decisions[0].confidence == pytest.approx(0.85)
+
+    def test_decision_captures_reasoning(self, tracer):
+        """Reasoning steps and uncertainties should be stored correctly."""
+        with tracer.trace_decision(
+            agent_id="risk_agent",
+            decision_type=DecisionType.CLASSIFICATION,
         ):
             tracer.record_decision(
-                output="approved",
-                confidence=0.85
+                output="denied",
+                confidence=0.72,
+                reasoning=["Score below threshold", "Income unverified"],
+                uncertainties=["Employment stability unknown"],
             )
-        
-        decisions = tracer.get_decisions()
-        assert len(decisions) == 1
-        assert decisions[0].output == "approved"
-    
-    def test_decision_with_reasoning(self, tracer):
-        """Test decision with complete provenance."""
-        with tracer.trace_decision(agent_id="risk_agent"):
-            tracer.record_decision(
-                output="approved",
-                confidence=0.75,
-                reasoning=[
-                    "Credit score meets threshold",
-                    "Income verified"
-                ],
-                uncertainties=["Short employment history"]
-            )
-        
-        decision = tracer.get_decisions()[0]
-        assert len(decision.reasoning) == 2
+
+        decision = tracer.query_decisions(agent_id="risk_agent")[0]
+        assert decision.reasoning == ["Score below threshold", "Income unverified"]
         assert len(decision.uncertainties) == 1
 ```
 
-## 🔍 Code Review Process
+### Coverage Target
 
-1. **Automated checks** must pass (CI/CD)
-2. **At least one approval** required
-3. **Address all comments** before merge
-4. **Squash commits** if messy history
-5. **Update CHANGELOG.md**
-
-### Review Checklist
-
-- [ ] Code follows style guide
-- [ ] Tests added/updated
-- [ ] Documentation updated
-- [ ] No breaking changes (or documented)
-- [ ] Performance impact considered
-- [ ] Security implications reviewed
-
-## 📚 Resources
-
-- [Python Style Guide](https://google.github.io/styleguide/pyguide.html)
-- [TypeScript Style Guide](https://github.com/airbnb/javascript)
-- [Conventional Commits](https://www.conventionalcommits.org/)
-- [Semantic Versioning](https://semver.org/)
-
-## 🏆 Recognition
-
-Contributors will be:
-- Listed in [AUTHORS.md](AUTHORS.md)
-- Mentioned in release notes
-- Invited to contributor Discord channel
-
-## 💬 Questions?
-
-- **Discord**: [Join our community](https://discord.gg/agentability)
-- **GitHub Discussions**: Ask questions
-- **Email**: contributors@agentability.io
-
-## 📜 License
-
-By contributing, you agree that your contributions will be licensed under the MIT License.
+All PRs must maintain **≥ 85 % line coverage** across the SDK. The CI
+pipeline enforces this automatically.
 
 ---
 
-Thank you for making Agentability better! 🚀
+## Code Review
+
+1. All automated checks must pass.
+2. At least one maintainer approval is required.
+3. All reviewer comments must be addressed before merge.
+4. Squash commits if the history is noisy.
+
+### Reviewer Checklist
+
+- [ ] Code follows the style guide.
+- [ ] Tests added or updated.
+- [ ] Documentation updated (docstrings, README, guides).
+- [ ] No breaking API changes (or migration guide provided).
+- [ ] Performance implications considered.
+- [ ] Security implications reviewed.
+
+---
+
+## Recognition
+
+Contributors are listed in [AUTHORS.md](AUTHORS.md), mentioned in release
+notes, and invited to the contributors channel on Discord.
+
+---
+
+## Questions?
+
+- GitHub Discussions: [github.com/inteleion-ai/Agentability/discussions](https://github.com/inteleion-ai/Agentability/discussions)
+- GitHub Issues: [github.com/inteleion-ai/Agentability/issues](https://github.com/inteleion-ai/Agentability/issues)
+- Email: hello@agentability.io
+
+---
+
+By contributing to Agentability, you agree that your code will be released
+under the MIT License.

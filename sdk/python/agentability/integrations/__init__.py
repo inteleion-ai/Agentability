@@ -1,21 +1,17 @@
 """Framework integrations for Agentability.
 
-This package provides auto-instrumentation for popular agent frameworks:
-- LangChain
-- CrewAI
-- AutoGen
-- LlamaIndex
-- Anthropic SDK
+Copyright 2026 Agentability Contributors
+SPDX-License-Identifier: MIT
 """
 
-from .langchain import LangChainInstrumentation
-from .crewai import CrewAIInstrumentation
-from .autogen import AutoGenInstrumentation
-from .llamaindex import LlamaIndexInstrumentation
-from .anthropic_sdk import AnthropicInstrumentation
+from agentability.integrations.anthropic_sdk import AnthropicInstrumentation
+from agentability.integrations.autogen import AutoGenInstrumentation
+from agentability.integrations.crewai import CrewAIInstrumentation
+from agentability.integrations.langchain import AgentabilityLangChainCallback
+from agentability.integrations.llamaindex import LlamaIndexInstrumentation
 
 __all__ = [
-    "LangChainInstrumentation",
+    "AgentabilityLangChainCallback",
     "CrewAIInstrumentation",
     "AutoGenInstrumentation",
     "LlamaIndexInstrumentation",

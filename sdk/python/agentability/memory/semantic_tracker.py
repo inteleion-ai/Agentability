@@ -1,34 +1,22 @@
 """Semantic memory tracking for knowledge graphs.
 
-Tracks knowledge graph operations, relationship traversals,
-and query complexity metrics.
-
-Google Style Guide Compliant.
+Copyright 2026 Agentability Contributors
+SPDX-License-Identifier: MIT
 """
 
+from __future__ import annotations
+
+import statistics
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
-import statistics
+from typing import Any
 
 
 @dataclass
 class SemanticRetrievalMetric:
-    """Metrics for semantic memory (knowledge graph) retrieval.
-    
-    Attributes:
-        operation_id: Unique identifier.
-        agent_id: Agent ID.
-        timestamp: Operation timestamp.
-        latency_ms: Query latency.
-        knowledge_graph_nodes: Total nodes in graph.
-        relationships_traversed: Number of relationships traversed.
-        max_hop_distance: Maximum hops in query.
-        graph_density: Graph density metric.
-        query_complexity: Query complexity score.
-        results_returned: Number of results.
-        metadata: Additional metadata.
-    """
+    """Metrics for one semantic (knowledge-graph) query."""
+
     operation_id: str
     agent_id: str
     timestamp: datetime
@@ -39,33 +27,37 @@ class SemanticRetrievalMetric:
     graph_density: float
     query_complexity: int
     results_returned: int
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class SemanticMemoryTracker:
-    """Tracks semantic memory (knowledge graph) performance."""
-    
-    def __init__(self, agent_id: str):
+    """Track semantic memory performance for one agent."""
+
+    def __init__(self, agent_id: str) -> None:
         self.agent_id = agent_id
-        self.operations: List[SemanticRetrievalMetric] = []
-    
-    def track_query(self) -> 'SemanticQueryContext':
-        """Track a knowledge graph query."""
+        self.operations: list[SemanticRetrievalMetric] = []
+
+    def track_query(self) -> SemanticQueryContext:
+        """Return a context manager for one knowledge-graph query."""
         operation_id = f"{self.agent_id}_sem_{len(self.operations)}"
         return SemanticQueryContext(self, operation_id)
-    
+
     def record_operation(self, metric: SemanticRetrievalMetric) -> None:
-        """Record an operation."""
+        """Persist a completed metric."""
         self.operations.append(metric)
-    
-    def get_avg_query_complexity(self, time_window_hours: Optional[int] = None) -> float:
-        """Get average query complexity."""
-        ops = self._filter_operations(time_window_hours)
+
+    def get_avg_query_complexity(
+        self, time_window_hours: int | None = None
+    ) -> float:
+        """Return mean query complexity."""
+        ops = self._filter(time_window_hours)
         if not ops:
             return 0.0
         return statistics.mean(op.query_complexity for op in ops)
-    
-    def _filter_operations(self, time_window_hours: Optional[int]) -> List[SemanticRetrievalMetric]:
+
+    def _filter(
+        self, time_window_hours: int | None
+    ) -> list[SemanticRetrievalMetric]:
         if not time_window_hours:
             return self.operations
         cutoff = datetime.now() - timedelta(hours=time_window_hours)
@@ -73,56 +65,61 @@ class SemanticMemoryTracker:
 
 
 class SemanticQueryContext:
-    """Context manager for semantic memory queries."""
-    
-    def __init__(self, tracker: SemanticMemoryTracker, operation_id: str):
-        self.tracker = tracker
-        self.operation_id = operation_id
-        self.start_time: Optional[float] = None
-        self.nodes: int = 0
-        self.relationships: int = 0
-        self.max_hops: int = 0
-        self.density: float = 0.0
-        self.complexity: int = 1
-        self.results: List[Any] = []
-    
-    def __enter__(self) -> 'SemanticQueryContext':
-        import time
-        self.start_time = time.time()
+    """Context manager for timing one knowledge-graph query."""
+
+    def __init__(
+        self, tracker: SemanticMemoryTracker, operation_id: str
+    ) -> None:
+        self._tracker = tracker
+        self._operation_id = operation_id
+        self._start: float | None = None
+        self._nodes: int = 0
+        self._relationships: int = 0
+        self._max_hops: int = 0
+        self._density: float = 0.0
+        self._complexity: int = 1
+        self._results: list[Any] = []
+
+    def __enter__(self) -> SemanticQueryContext:
+        self._start = time.time()
         return self
-    
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        import time
-        latency_ms = (time.time() - self.start_time) * 1000 if self.start_time else 0.0
-        
+
+    def __exit__(
+        self,
+        exc_type: Any,
+        exc_val: Any,
+        exc_tb: Any,
+    ) -> None:
+        latency_ms = (time.time() - (self._start or time.time())) * 1000
         metric = SemanticRetrievalMetric(
-            operation_id=self.operation_id,
-            agent_id=self.tracker.agent_id,
+            operation_id=self._operation_id,
+            agent_id=self._tracker.agent_id,
             timestamp=datetime.now(),
             latency_ms=latency_ms,
-            knowledge_graph_nodes=self.nodes,
-            relationships_traversed=self.relationships,
-            max_hop_distance=self.max_hops,
-            graph_density=self.density,
-            query_complexity=self.complexity,
-            results_returned=len(self.results)
+            knowledge_graph_nodes=self._nodes,
+            relationships_traversed=self._relationships,
+            max_hop_distance=self._max_hops,
+            graph_density=self._density,
+            query_complexity=self._complexity,
+            results_returned=len(self._results),
         )
-        
-        self.tracker.record_operation(metric)
-    
+        self._tracker.record_operation(metric)
+
     def record_query(
         self,
         nodes: int,
         relationships: int,
         max_hops: int,
-        results: List[Any],
-        complexity: int = 1
+        results: list[Any],
+        complexity: int = 1,
     ) -> None:
         """Record query details."""
-        self.nodes = nodes
-        self.relationships = relationships
-        self.max_hops = max_hops
-        self.complexity = complexity
-        self.results = results
-        if nodes > 0:
-            self.density = relationships / (nodes * (nodes - 1)) if nodes > 1 else 0.0
+        self._nodes = nodes
+        self._relationships = relationships
+        self._max_hops = max_hops
+        self._complexity = complexity
+        self._results = results
+        if nodes > 1:
+            self._density = relationships / (nodes * (nodes - 1))
+        else:
+            self._density = 0.0

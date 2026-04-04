@@ -1,152 +1,98 @@
-"""
-Version tracking system - complete lineage for RCA.
+"""Version tracking system for root-cause analysis.
 
-Copyright (c) 2026 Agentability
-Licensed under MIT License
+Copyright 2026 Agentability Contributors
+SPDX-License-Identifier: MIT
 """
+
+from __future__ import annotations
 
 import hashlib
-from typing import Dict, List, Optional
+from typing import Any
 
 from agentability.models import VersionSnapshot
 
 
 class VersionTracker:
-    """
-    Track all versions affecting agent behavior.
-    
-    This enables proper Root Cause Analysis (RCA).
-    
-    Example:
-        tracker = VersionTracker()
-        snapshot = tracker.capture_snapshot(
-            model_name="claude-sonnet-4",
-            model_version="20250514",
-            prompt_template="You are...",
-            prompt_variables={},
-            tools_available=["search", "calculator"],
-            tool_versions={"search": "1.0", "calculator": "2.0"},
-            system_config={}
-        )
-    """
-    
-    def __init__(self):
-        self.snapshots: Dict[str, VersionSnapshot] = {}
-    
+    """Track all versions that affect agent behaviour."""
+
+    def __init__(self) -> None:
+        self._snapshots: dict[str, VersionSnapshot] = {}
+
     def capture_snapshot(
         self,
         model_name: str,
         model_version: str,
         prompt_template: str,
-        prompt_variables: Dict,
-        tools_available: List[str],
-        tool_versions: Dict[str, str],
-        system_config: Dict,
-        **kwargs
+        prompt_variables: dict[str, Any],
+        tools_available: list[str],
+        tool_versions: dict[str, str],
+        system_config: dict[str, Any],
+        model_hash: str | None = None,
+        dataset_version: str | None = None,
     ) -> VersionSnapshot:
-        """Capture complete version snapshot at decision time."""
-        # Hash prompt template for change detection
+        """Capture a version snapshot at the current point in time."""
         prompt_hash = hashlib.sha256(
-            prompt_template.encode()
+            prompt_template.encode("utf-8")
         ).hexdigest()[:16]
-        
-        # Create snapshot
         snapshot = VersionSnapshot(
             model_name=model_name,
             model_version=model_version,
-            model_hash=kwargs.get('model_hash'),
+            model_hash=model_hash,
             prompt_template=prompt_template,
             prompt_hash=prompt_hash,
             prompt_variables=prompt_variables,
             tools_available=tools_available,
             tool_versions=tool_versions,
             system_config=system_config,
-            dataset_version=kwargs.get('dataset_version')
+            dataset_version=dataset_version,
         )
-        
-        # Store snapshot
-        self.snapshots[snapshot.snapshot_id] = snapshot
+        self._snapshots[str(snapshot.snapshot_id)] = snapshot
         return snapshot
-    
+
     def compare_snapshots(
-        self,
-        snapshot_id_1: str,
-        snapshot_id_2: str
-    ) -> Dict:
-        """
-        Compare two snapshots to find what changed.
-        
-        Returns dict with differences.
-        """
-        snap1 = self.snapshots.get(snapshot_id_1)
-        snap2 = self.snapshots.get(snapshot_id_2)
-        
-        if not snap1 or not snap2:
+        self, snapshot_id_1: str, snapshot_id_2: str
+    ) -> dict[str, Any]:
+        """Return a diff of two snapshots."""
+        snap1 = self._snapshots.get(snapshot_id_1)
+        snap2 = self._snapshots.get(snapshot_id_2)
+        if snap1 is None or snap2 is None:
             return {"error": "Snapshot not found"}
-        
-        differences = {}
-        
-        # Check model version
+
+        differences: dict[str, Any] = {}
         if snap1.model_version != snap2.model_version:
-            differences['model_version'] = {
-                'old': snap1.model_version,
-                'new': snap2.model_version
+            differences["model_version"] = {
+                "old": snap1.model_version, "new": snap2.model_version
             }
-        
-        # Check prompt changes
         if snap1.prompt_hash != snap2.prompt_hash:
-            differences['prompt'] = {
-                'changed': True,
-                'old_hash': snap1.prompt_hash,
-                'new_hash': snap2.prompt_hash
+            differences["prompt"] = {
+                "changed": True,
+                "old_hash": snap1.prompt_hash,
+                "new_hash": snap2.prompt_hash,
             }
-        
-        # Check tool changes
         old_tools = set(snap1.tools_available)
         new_tools = set(snap2.tools_available)
-        
-        added_tools = new_tools - old_tools
-        removed_tools = old_tools - new_tools
-        
-        if added_tools or removed_tools:
-            differences['tools'] = {
-                'added': list(added_tools),
-                'removed': list(removed_tools)
+        added = new_tools - old_tools
+        removed = old_tools - new_tools
+        if added or removed:
+            differences["tools"] = {
+                "added": sorted(added), "removed": sorted(removed)
             }
-        
-        # Check tool version changes
-        tool_version_changes = {}
+        tool_ver_changes: dict[str, Any] = {}
         for tool in old_tools & new_tools:
-            old_ver = snap1.tool_versions.get(tool)
-            new_ver = snap2.tool_versions.get(tool)
-            if old_ver != new_ver:
-                tool_version_changes[tool] = {
-                    'old': old_ver,
-                    'new': new_ver
-                }
-        
-        if tool_version_changes:
-            differences['tool_versions'] = tool_version_changes
-        
+            ov = snap1.tool_versions.get(tool)
+            nv = snap2.tool_versions.get(tool)
+            if ov != nv:
+                tool_ver_changes[tool] = {"old": ov, "new": nv}
+        if tool_ver_changes:
+            differences["tool_versions"] = tool_ver_changes
         return differences
-    
-    def get_snapshot(self, snapshot_id: str) -> Optional[VersionSnapshot]:
-        """Get a specific snapshot by ID."""
-        return self.snapshots.get(snapshot_id)
-    
-    def get_lineage(self, decision_id: str) -> Dict:
-        """
-        Get complete lineage for a decision.
-        
-        Returns all version information that could affect the decision.
-        """
-        # This would be populated by the tracer
-        # For now, return structure
-        return {
-            "decision_id": decision_id,
-            "snapshot_id": None,
-            "model_version": None,
-            "prompt_hash": None,
-            "tools_used": [],
-            "tool_versions": {}
-        }
+
+    def get_snapshot(self, snapshot_id: str) -> VersionSnapshot | None:
+        """Return a snapshot by ID."""
+        return self._snapshots.get(snapshot_id)
+
+    def list_snapshots(self) -> list[VersionSnapshot]:
+        """Return all snapshots, newest first."""
+        return sorted(
+            self._snapshots.values(), key=lambda s: s.timestamp, reverse=True
+        )

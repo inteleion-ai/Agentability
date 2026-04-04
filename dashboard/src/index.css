@@ -1,0 +1,155 @@
+/* ============================================================
+   Agentability Dashboard — Global Styles
+   Datadog-quality dark theme, OSS standards
+   ============================================================ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design tokens ─────────────────────────────────────────── */
+:root {
+  --bg-base:        #080A10;
+  --bg-surface:     #0F1219;
+  --bg-elevated:    #161A25;
+  --bg-hover:       #1D2233;
+  --border:         #252A3A;
+  --border-subtle:  #1C2030;
+
+  --text-primary:   #E2E6F3;
+  --text-secondary: #8891AC;
+  --text-muted:     #555E78;
+
+  --blue:           #4F9CF8;
+  --blue-dim:       #1A3560;
+  --green:          #34D399;
+  --green-dim:      #0D3B28;
+  --amber:          #FBBF24;
+  --amber-dim:      #3B2A08;
+  --red:            #F87171;
+  --red-dim:        #3B1212;
+  --purple:         #A78BFA;
+  --purple-dim:     #2A1F50;
+  --cyan:           #22D3EE;
+  --cyan-dim:       #0A2F38;
+
+  --font-ui:   'Sora', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --sidebar-w: 220px;
+  --topbar-h:  56px;
+}
+
+/* ── Base reset ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { height: 100%; }
+
+body {
+  height: 100%;
+  font-family: var(--font-ui);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root { height: 100%; display: flex; }
+
+/* ── Scrollbars ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ── Mono numbers ───────────────────────────────────────────── */
+.mono { font-family: var(--font-mono); }
+
+/* ── Utility classes ────────────────────────────────────────── */
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.status-dot.green  { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+.status-dot.amber  { background: var(--amber);  box-shadow: 0 0 6px var(--amber); }
+.status-dot.red    { background: var(--red);    box-shadow: 0 0 6px var(--red); }
+.status-dot.blue   { background: var(--blue);   box-shadow: 0 0 6px var(--blue); }
+.status-dot.muted  { background: var(--text-muted); }
+
+/* ── Animated pulse for live indicator ─────────────────────── */
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
+  70%  { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}
+.live-pulse { animation: pulse-ring 2s infinite; }
+
+/* ── Fade-in for page transitions ───────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.25s ease forwards; }
+
+/* ── Card glow on hover ─────────────────────────────────────── */
+.card-glow:hover {
+  border-color: var(--blue-dim) !important;
+  box-shadow: 0 0 0 1px var(--blue-dim), 0 4px 24px rgba(79,156,248,0.08);
+}
+
+/* ── Severity badge colours ─────────────────────────────────── */
+.badge-critical { background: rgba(248,113,113,0.15); color: var(--red);    border: 1px solid rgba(248,113,113,0.3); }
+.badge-high     { background: rgba(251,191,36, 0.12); color: var(--amber);  border: 1px solid rgba(251,191,36, 0.3); }
+.badge-medium   { background: rgba(79, 156,248,0.12); color: var(--blue);   border: 1px solid rgba(79, 156,248,0.3); }
+.badge-low      { background: rgba(52, 211,153,0.10); color: var(--green);  border: 1px solid rgba(52, 211,153,0.3); }
+.badge-none     { background: rgba(85, 94, 120,0.15); color: var(--text-muted); border: 1px solid var(--border); }
+
+/* ── Confidence bar ─────────────────────────────────────────── */
+.conf-bar { height: 3px; border-radius: 99px; background: var(--border); overflow: hidden; }
+.conf-bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+
+/* ── Table styles ───────────────────────────────────────────── */
+.ag-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ag-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.ag-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+.ag-table tr:last-child td { border-bottom: none; }
+.ag-table tbody tr:hover { background: var(--bg-hover); }
+
+/* ── Empty state ────────────────────────────────────────────── */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 48px 24px; color: var(--text-muted); text-align: center;
+}
+.empty-state svg { opacity: 0.3; }
+
+/* ── Skeleton loader ────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: var(--radius-sm);
+}

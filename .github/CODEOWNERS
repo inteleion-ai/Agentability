@@ -1,0 +1,23 @@
+# CODEOWNERS — auto-assigns reviewers to pull requests
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global fallback — all files
+* @inteleion-ai
+
+# Python SDK
+sdk/python/agentability/                    @inteleion-ai
+sdk/python/tests/                           @inteleion-ai
+
+# FastAPI platform
+agentability_api/                           @inteleion-ai
+
+# React dashboard
+dashboard/                                  @inteleion-ai
+
+# CI / build tooling
+.github/                                    @inteleion-ai
+pyproject.toml                              @inteleion-ai
+Makefile                                    @inteleion-ai
+
+# Security policy — requires founder review
+SECURITY.md                                 @inteleion-ai

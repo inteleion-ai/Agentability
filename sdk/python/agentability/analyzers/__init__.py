@@ -1,32 +1,31 @@
-"""Analysis engines for agent behavior.
+"""Analysis engines for agent behaviour.
 
-This package provides analyzers for:
-- Decision provenance (why decisions were made)
-- Causal graphs (causality chains)
-- Conflict analysis (multi-agent disagreements)
-- Drift detection (quality degradation)
-- Lineage tracing (information flow)
-- Cost analysis (LLM optimization)
+Copyright 2026 Agentability Contributors
+SPDX-License-Identifier: MIT
 """
 
-from .provenance import ProvenanceAnalyzer, DecisionProvenance
-from .causal_graph import CausalGraphBuilder, CausalNode, CausalEdge
-from .conflict_analyzer import ConflictAnalyzer
-from .drift_detector import DriftDetector, DriftReport
-from .lineage_tracer import LineageTracer, InformationLineage
-from .cost_analyzer import CostAnalyzer, CostOptimization
+from agentability.analyzers.causal_graph import (
+    CausalEdge,
+    CausalGraphBuilder,
+    CausalNode,
+)
+from agentability.analyzers.conflict_analyzer import ConflictAnalyzer
+from agentability.analyzers.cost_analyzer import CostAnalyzer, CostOptimization
+from agentability.analyzers.drift_detector import DriftAlert, DriftDetector
+from agentability.analyzers.lineage_tracer import InformationLineage, LineageTracer
+from agentability.analyzers.provenance import DecisionProvenance, ProvenanceAnalyzer
 
 __all__ = [
-    "ProvenanceAnalyzer",
-    "DecisionProvenance",
+    "CausalEdge",
     "CausalGraphBuilder",
     "CausalNode",
-    "CausalEdge",
     "ConflictAnalyzer",
-    "DriftDetector",
-    "DriftReport",
-    "LineageTracer",
-    "InformationLineage",
     "CostAnalyzer",
     "CostOptimization",
+    "DecisionProvenance",
+    "DriftAlert",
+    "DriftDetector",
+    "InformationLineage",
+    "LineageTracer",
+    "ProvenanceAnalyzer",
 ]
